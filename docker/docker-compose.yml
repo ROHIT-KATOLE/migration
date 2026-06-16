@@ -1,0 +1,33 @@
+# Qlik Associative Engine for extracting .qvf apps to JSON via `corectl unbuild`.
+#
+# The engine reads apps from the mounted ./apps folder. Drop your .qvf files in
+# docker/apps/ then bring it up:
+#
+#   cd docker
+#   ACCEPT_EULA=yes docker compose up -d        # Linux/macOS
+#   $env:ACCEPT_EULA="yes"; docker compose up -d # Windows PowerShell
+#
+# You MUST set ACCEPT_EULA=yes to accept Qlik's end-user licence agreement.
+#
+# NOTE: Qlik Core (qlikcore/engine) is a deprecated distribution. If this image
+# no longer pulls or refuses to run in your environment, use Qlik Sense Desktop's
+# engine instead and point corectl at it — see README "If the Docker engine is
+# unavailable".
+services:
+  qix-engine:
+    image: qlikcore/engine:12.1187.0
+    container_name: qlik-qix-engine
+    command:
+      - "-S"
+      - "AcceptEULA=${ACCEPT_EULA:-no}"
+      - "-S"
+      - "DocumentDirectory=/data/apps"
+    ports:
+      - "9076:9076"
+    volumes:
+      - ./apps:/data/apps
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9076/healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

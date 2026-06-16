@@ -1,0 +1,2 @@
+# Drop your .qvf files here. The Qlik engine container mounts this folder at
+# /data/apps and opens apps by file name (e.g. "Global SIOP Dashboard.qvf").

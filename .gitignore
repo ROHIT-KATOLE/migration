@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Generated migration output
+output/
+
+# Qlik source apps and diagnostic dumps (machine-specific / large)
+*.qvf
+*.strings.txt
+*_objects/
+*_carved/
+unbuild/
+docker/apps/*.qvf
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
