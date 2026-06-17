@@ -164,26 +164,45 @@ def _guess_type(name: str) -> str:
     return "string"
 
 
+# Words that mark a field as a measure/amount, not a join key. Relationships on
+# these are almost always spurious (you don't join tables on a quantity).
+_NON_KEY_HINT = re.compile(
+    r"(?i)(qty|quantity|amount|amt|cogs|sales|revenue|net|value|price|cost|"
+    r"count|sum|total|interval|size|rows|fields|pct|percent|%|margin|"
+    r"balance|gap|forecast|budget|asp|stock|inventory)")
+
+
+def _looks_like_key(field: str) -> bool:
+    """A field worth joining on: not a measure/amount, and reasonably short."""
+    name = (field or "").strip()
+    if not name or len(name) > 60:
+        return False
+    return not _NON_KEY_HINT.search(name)
+
+
 def _infer_associations(tables: List[dict]) -> List[dict]:
-    """Qlik links tables by identical field names. Emit one association per
-    shared field, pointing the larger table at the smaller (fact -> dimension)."""
+    """Qlik links tables by identical field names, but Power BI needs a clean
+    relationship graph. We are conservative: only key-like shared fields, and at
+    most ONE relationship per table pair (avoids ambiguous/duplicate-pair errors
+    that block the model from loading)."""
     field_to_tables: Dict[str, List[str]] = {}
     sizes = {t["table_name"]: len(t["fields"]) for t in tables}
     for t in tables:
         for f in t["fields"]:
-            field_to_tables.setdefault(f["name"], []).append(t["table_name"])
+            if _looks_like_key(f["name"]):
+                field_to_tables.setdefault(f["name"], []).append(t["table_name"])
 
     associations = []
-    seen = set()
+    seen_pairs = set()
     for field, owners in field_to_tables.items():
         owners = sorted(set(owners), key=lambda n: sizes.get(n, 0), reverse=True)
         if len(owners) < 2:
             continue
         many, one = owners[0], owners[-1]
-        key = (many, one, field)
-        if many == one or key in seen:
+        pair = frozenset((many, one))
+        if many == one or pair in seen_pairs:
             continue
-        seen.add(key)
+        seen_pairs.add(pair)
         associations.append({
             "from_table": many, "to_table": one,
             "from_field": field, "to_field": field,

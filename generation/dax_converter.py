@@ -53,6 +53,11 @@ class UnknownFunction(Exception):
     """Raised internally when a function call has no known DAX mapping."""
 
 
+class UnknownColumn(Exception):
+    """Raised when a column can't be resolved to a real table (avoids a phantom
+    'T' reference that would break the model)."""
+
+
 class DAXConverter:
     def __init__(
         self,
@@ -94,6 +99,10 @@ class DAXConverter:
         except UnknownFunction as e:
             self.fallback_count += 1
             log.debug("Fallback (unknown function %s) for measure %s", e, name)
+            return self._result(name, original, "fallback")
+        except UnknownColumn as e:
+            self.fallback_count += 1
+            log.debug("Fallback (unresolved column %s) for measure %s", e, name)
             return self._result(name, original, "fallback")
         except Exception as e:  # noqa: BLE001 - converter must never crash a run
             self.failed_count += 1
@@ -143,7 +152,13 @@ class DAXConverter:
         return dax
 
     def _qualify_column(self, field: str) -> str:
-        table = self.column_table_map.get(field, DEFAULT_TABLE)
+        table = self.column_table_map.get(field)
+        if table is None:
+            # With a real model loaded, an unmapped column means we can't be sure
+            # which table it belongs to -> fall back rather than invent 'T'.
+            if self.column_table_map:
+                raise UnknownColumn(field)
+            table = DEFAULT_TABLE
         return f"'{table}'[{field}]"
 
     @staticmethod

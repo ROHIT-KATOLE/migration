@@ -286,6 +286,11 @@ class SemanticModelGenerator:
                 lines.append("\tfromCardinality: one")
                 lines.append("\ttoCardinality: one")
             lines.append("\tcrossFilteringBehavior: oneDirection")
+            # Inactive by default: Qlik's associative model doesn't map 1:1 to a
+            # Power BI relationship graph, so auto-inferred links are suggestions.
+            # Inactive guarantees the model loads (no ambiguous-path errors); the
+            # modeler activates the correct ones.
+            lines.append("\tisActive: false")
             lines.append("")
         _write_text(def_dir / "relationships.tmdl", "\n".join(lines) + "\n")
 

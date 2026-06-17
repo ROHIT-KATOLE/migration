@@ -14,7 +14,9 @@ import re
 
 from extraction.qvf_reader import QVFReader, QVFReadError
 from extraction.corectl_reader import CorectlReader
-from extraction.extractor import Extractor, ExtractionError, merge_apps
+from extraction.extractor import (
+    Extractor, ExtractionError, merge_apps, write_app_json,
+)
 from generation.dax_converter import DAXConverter
 from generation.semantic_model import SemanticModelGenerator
 from generation.visual_builder import VisualBuilder
@@ -62,6 +64,10 @@ def _app_name(source: Path) -> str:
 def _generate(extracted, app_name: str, out: Path) -> Path:
     """Run the full generation pipeline for one app, returning the .pbip path."""
     out.mkdir(parents=True, exist_ok=True)
+    # Write the extracted data as JSON (the qvf -> JSON artifact) before generating.
+    write_app_json(extracted, out / "extracted")
+    log.info("  Extracted JSON -> %s", out / "extracted")
+
     dax = DAXConverter(extracted.measures, _column_table_map(extracted))
     measures = dax.convert_all()
     log.info("  DAX: %d converted, %d fallback, %d failed",

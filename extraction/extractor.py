@@ -343,22 +343,27 @@ class Extractor:
 
     def write_json(self, output_dir: Path) -> ExtractedApp:
         app = self.extract()
-        out = Path(output_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        payloads = {
-            "metadata": app.metadata.model_dump(),
-            "datasources": [d.model_dump() for d in app.datasources],
-            "measures": [m.model_dump() for m in app.measures],
-            "dimensions": [d.model_dump() for d in app.dimensions],
-            "visualizations": [v.model_dump() for v in app.visualizations],
-            "sheets": [s.model_dump() for s in app.sheets],
-            "variables": [v.model_dump() for v in app.variables],
-            "associations": [a.model_dump() for a in app.associations],
-        }
-        for domain, filename in JSON_FILES.items():
-            with open(out / filename, "w", encoding="utf-8") as fh:
-                json.dump(payloads[domain], fh, indent=2, ensure_ascii=False)
+        write_app_json(app, output_dir)
         return app
+
+
+def write_app_json(app: ExtractedApp, output_dir: Path) -> None:
+    """Write the 8 extracted-domain JSON files (the qvf -> JSON artifact)."""
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    payloads = {
+        "metadata": app.metadata.model_dump(),
+        "datasources": [d.model_dump() for d in app.datasources],
+        "measures": [m.model_dump() for m in app.measures],
+        "dimensions": [d.model_dump() for d in app.dimensions],
+        "visualizations": [v.model_dump() for v in app.visualizations],
+        "sheets": [s.model_dump() for s in app.sheets],
+        "variables": [v.model_dump() for v in app.variables],
+        "associations": [a.model_dump() for a in app.associations],
+    }
+    for domain, filename in JSON_FILES.items():
+        with open(out / filename, "w", encoding="utf-8") as fh:
+            json.dump(payloads[domain], fh, indent=2, ensure_ascii=False)
 
 
 def merge_apps(apps: List[ExtractedApp], name: str) -> ExtractedApp:
